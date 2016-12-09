@@ -68,6 +68,43 @@ write_clause(Out, Clause) :-
 	sync_line(Out, Clause.start_term),
 	output_term(Clause.term, Clause.layout, 0, Clause.put(out, Out)).
 
+%!	sub_layout(-Sub, -SubLayout, +Term, +TermLayout) is nondet.
+%
+%	Extract the layout of each subterm of Term
+
+sub_layout(Term, Layout, Term, Layout).
+sub_layout(Sub, SubLayout, Term, term_position(_F,_T,_FF,_FT,Args)) :-
+	nth1(I, Args, ArgLayout),
+	arg(I, Term, Arg),
+	sub_layout(Sub, SubLayout, Arg, ArgLayout).
+sub_layout(Sub, SubLayout, {Term}, brace_term_position(_F,_T,_FF,Arg)) :-
+	sub_layout(Sub, SubLayout, Term, Arg).
+sub_layout(Sub, SubLayout, List, list_position(_F,_T,ElmPos,TailPos)) :-
+	(   select(E,List, Pos,ElmPos),
+	    sub_layout(Sub, SubLayout, E, Pos)
+	;   Tail \== none,
+	    '$skip_list'(_, List, Tail),
+	    sub_layout(Sub, SubLayout, Tail, TailPos)
+	).
+sub_layout(Sub, SubLayout, Dict, dict_position(From, To, TagFrom, TagTo,
+					       KeyValuePosList)) :-
+	(   is_dict(Dict, Tag),
+	    sub_layout(Sub, SubLayout, Tag, TagFrom-TagTo)
+	;   member(key_value_position(From, To, SepFrom, SepTo, Key,
+				      KeyPos, ValuePos), KeyValuePosList),
+	    (	sub_layout(Sub, SubLayout, Key, KeyPos)
+	    ;	sub_layout(Sub, SubLayout, :, SepFrom-SepTo)
+	    ;	get_dict(Key, Dict, Value),
+		sub_layout(Sub, SubLayout, Value, ValuePos)
+	    )
+	).
+sub_layout(Sub, SubLayout, Term, parentheses_term_position(_,_,Layout)) :-
+	sub_layout(Sub, SubLayout, Term, Layout).
+
+
+
+
+
 output_term(_Prim, From-To, Here, Clause) :- !,
 	original(From-To, Clause, String),
 	copy_skipped(Here, From, Clause),
