@@ -66,7 +66,23 @@ write_clause(Out, Clause) :-
 	sync_line(Out, Clause.start_term).
 write_clause(Out, Clause) :-
 	sync_line(Out, Clause.start_term),
-	format(Out, '~s', [Clause.string]).
+	output_term(Clause.term, Clause.layout, 0, Clause.put(out, Out)).
+
+output_term(_Prim, From-To, Here, Clause) :- !,
+	original(From-To, Clause, String),
+	copy_skipped(Here, From, Clause),
+	format(Clause.out, '~s', String).
+output_term(Compound, term_position(_F,_T,_FF,_FT,Args), Here, Clause) :- !,
+	output_args(1, Compound, Args, Here, Clause).
+output_term(_, _, _).
+
+output_args(_, _, [], _, _) :- !.
+output_args(I, Term, [H|T], Here, Clause) :-
+	arg(I, Term, Arg),
+	output_term(Arg, H, Clause),
+	I2 is I+1,
+	output_args(I2, Term, T, Clause).
+
 
 %%	read_range(+In, +Start, +End, -String)
 %
@@ -80,6 +96,14 @@ read_range(In, Start, End, String) :-
 	Len is EndChar - StartChar,
 	read_string(In, Len, String),
 	set_stream_position(In, OldPos).
+
+original(Pos, Clause, String) :-
+	stream_position_data(char_count, Clause.start_term, StartTerm),
+	arg(1, Pos, Start),
+	arg(2, Pos, End),
+	CStart is Start - StartTerm,
+	Len is End-Start,
+	sub_string(Clause.string, CStart, Len, _, String).
 
 %%	sync_line(Out, Pos) is det.
 %
