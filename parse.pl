@@ -1,5 +1,8 @@
 :- module(parse_source,
-	  [ parse_source/2		% +File, -Tree
+	  [ parse_source/2,		% +File, -Tree
+	    sub_node/2,			% -Sub, +Tree
+
+	    check_node/1		% +Tree
 	  ]).
 :- use_module(library(prolog_colour)).
 :- use_module(library(apply)).
@@ -33,6 +36,13 @@ parse_stream(In, Path,
 	sort(1, =<, Tokens1, Tokens),
 	fragment_hierarchy(Tokens, String, Terms).
 
+on_item(parentheses, Start, Length) :- !,
+	End is Start+Length,
+	S1 is Start+1,
+	E0 is End - 1,
+	assert(fragment(Start, S1,  paren_open)),
+	assert(fragment(E0,    End, paren_close)),
+	assert(fragment(Start, End, parentheses)).
 on_item(Type, Start, Length) :-
 	End is Start+Length,
 	assert(fragment(Start, End, Type)).
@@ -74,6 +84,7 @@ add_layout(TreeIn, TreeOut) :-
 	add_layout(Children1, TreeIn.start, TreeIn.string, TreeIn.start, AllChildren),
 	TreeOut = TreeIn.put(children, AllChildren), !.
 
+add_layout([], Offset, _, Offset, []) :- !.
 add_layout([], Here, String, Offset, Layout) :-
 	Start is Here - Offset,
 	sub_string(String, Start, Len, 0, Final),
@@ -95,6 +106,16 @@ add_layout([H|T0], Here, String, Offset,
 	Start is Here - Offset,
 	sub_string(String, Start, Len, _, Layout),
 	add_layout(T0, H.end, String, Offset, T).
+
+
+		 /*******************************
+		 *	       QUERY		*
+		 *******************************/
+
+sub_node(Node, Node).
+sub_node(Sub, Node) :-
+	member(Sub0, Node.children),
+	sub_node(Sub, Sub0).
 
 
 		 /*******************************
