@@ -29,6 +29,12 @@ reindent_node(Node, Out) :-
 		Nodes),
 	phrase(reindent_clause(Out), Nodes).
 reindent_node(Node, Out) :-
+	_{class:grammar_rule} :< Node, !,
+	findall(node(Class, String),
+		leaf_node(Node, Class, String),
+		Nodes),
+	phrase(reindent_clause(Out), Nodes).
+reindent_node(Node, Out) :-
 	_{class:directive} :< Node,
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
