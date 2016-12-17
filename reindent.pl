@@ -31,12 +31,14 @@ reindent_node(Node, Out) :-
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
 		Nodes),
+	dump_leaves(Nodes),
 	phrase(reindent_clause(Out), Nodes).
 reindent_node(Node, Out) :-
 	_{class:directive} :< Node,
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
 		Nodes),
+	dump_leaves(Nodes),
 	phrase(reindent_directive, Nodes), !,
 	phrase(reindent_clause(Out), Nodes).
 reindent_node(Node, Out) :-
@@ -49,6 +51,13 @@ has_neck(Tree) :-
 leaf_node(Tree, Class, String) :-
 	sub_node(Node, Tree),
 	_{children:[], string:String, class:Class} :< Node.
+
+dump_leaves(Nodes) :-
+	(   debugging('dump-leaves')
+	->  print_term(Nodes, [output(user_error)]),
+	    nl(user_error)
+	;   true
+	).
 
 %%	reindent_comment(+Out)//
 
@@ -89,9 +98,8 @@ reindent_clause(Out) -->
 	copy_to_neck(Out),
 	reindent_body(Out).
 
-copy_to_neck(Out) -->
-	[node(neck(_), String)], !,
-	{ format(Out, '~s', [String]) }.
+copy_to_neck(_), [node(neck(Type), String)] -->
+	[node(neck(Type), String)], !.
 copy_to_neck(Out) -->
 	[node(_, String)], !,
 	{ format(Out, '~s', [String]) },
@@ -107,13 +115,39 @@ reindent_body(Out) -->
 	  format(Out, '~s    ~s', [Line, Rest])
 	},
 	reindent_body(Out).
+reindent_body(Out) -->				% do not change layout after ->
+	then,
+	layout(S),
+	cut, !,
+	{ format(Out, '->~s!', [S]) },
+	reindent_body(Out).
+reindent_body(Out) -->
+	opt_layout(Before),
+	cut, and,
+	layout(After),
+	{ split_string(Before, "", "\s\t", [""]),
+	  split_string(After, "", "\n\s\t", [""]), !,
+	  reindent_layout(Out, After),
+	  format(Out, '!,', []),
+	  reindent_layout(Out, After)
+	},
+	reindent_body(Out).
+reindent_body(Out) -->
+	neck(Neck),
+	opt_layout(Layout),
+	cut,
+	eos,
+	{ split_string(Layout, "", "\s\t", [""]), !,
+	  format(Out, '~s !', [Neck,Layout])
+	}.
+reindent_body(Out) -->
+	cut,
+	eos, !,
+	{ format(Out, '\n    !', [])
+	}.
 reindent_body(Out) -->
 	[node(layout, String)],
-	{ sub_string(String, B, _, A, "\n        "), !,
-	  sub_string(String, 0, B, _, Lead),
-	  sub_string(String, _, A, 0, Rest),
-	  format(Out, '~s\n    ~s', [Lead, Rest])
-	},
+	{ reindent_layout(Out, String) },
 	reindent_body(Out).
 reindent_body(Out) -->
 	[node(_, String)], !,
@@ -122,6 +156,36 @@ reindent_body(Out) -->
 	reindent_body(Out).
 reindent_body(_) -->
 	[].
+
+neck(Neck) -->
+	[ node(neck(_), Neck) ].
+
+cut -->
+	[ node(goal(built_in,!),"!") ].
+
+and -->
+	[ node(control, ",") ].
+
+then -->
+	[ node(control, "->") ].
+
+layout(Layout) -->
+	[node(layout, Layout)].
+
+opt_layout(Layout) -->
+	(   [node(layout, Layout)]
+	->  []
+	;   { Layout = "" }
+	).
+
+
+reindent_layout(Out, String) :-
+	sub_string(String, B, _, A, "\n        "), !,
+	sub_string(String, 0, B, _, Lead),
+	sub_string(String, _, A, 0, Rest),
+	format(Out, '~s\n    ~s', [Lead, Rest]).
+reindent_layout(Out, String) :-
+	format(Out, '~s', [String]).
 
 reindent_directive -->
 	[ node(neck(directive), _),
