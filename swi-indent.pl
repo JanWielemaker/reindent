@@ -34,11 +34,19 @@ run(Goal, Name) :-
 	T is T1-T0,
 	(   True == true
 	->  format(user_error, '~3f)', [T])
-	;   format(user_error, 'FAILED)', []),
+	;   True == false,
+	    format(user_error, 'FAILED)', []),
+	    fail
+	;   True = error(E),
+	    message_to_string(E, Msg),
+	    format(user_error, '~w)', [Msg]),
 	    fail
 	).
 
 yesno(Goal, YesNo) :-
-	call(Goal), !,
-	YesNo = true.
+	catch(Goal, E, true), !,
+	(   var(E)
+	->  YesNo = true
+	;   YesNo = error(E)
+	).
 yesno(_Goal, false).
