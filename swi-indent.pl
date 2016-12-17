@@ -4,6 +4,7 @@
 :- use_module(reindent).
 :- use_module(cmp).
 :- use_module(library(main)).
+:- use_module(library(debug)).
 
 :- initialization main.
 
@@ -11,8 +12,17 @@
 	run(0, +),
 	yesno(0, -).
 
-main(Files) :-
+main(Argv) :-
+	argv_options(Argv, Files, Options),
+	set_options(Options),
 	maplist(expand, Files).
+
+set_options([]).
+set_options([debug(Topic)|T]) :- !,
+	debug(Topic),
+	set_options(T).
+
+
 
 expand(File) :-
 	format(user_error, 'Reindent ~w (tabs) ... ', [File]),

@@ -9,6 +9,10 @@
 reindent(FileIn, FileOut) :-
 	parse_source(FileIn, Tree),
 	assertion(check_node(Tree)),
+	(   debugging(dump)
+	->  print_term(Tree, [output(user_error)])
+	;   true
+	),
 	setup_call_cleanup(
 	    open(FileOut, write, Out),
 	    reindent_nodes(Tree.children, Out),
@@ -23,13 +27,7 @@ reindent_node(Node, Out) :-
 	string_codes(Comment, Codes),
 	phrase(reindent_comment(Out), Codes).
 reindent_node(Node, Out) :-
-	_{class:clause} :< Node, !,
-	findall(node(Class, String),
-		leaf_node(Node, Class, String),
-		Nodes),
-	phrase(reindent_clause(Out), Nodes).
-reindent_node(Node, Out) :-
-	_{class:grammar_rule} :< Node, !,
+	has_neck(Node), !,
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
 		Nodes),
@@ -43,6 +41,10 @@ reindent_node(Node, Out) :-
 	phrase(reindent_clause(Out), Nodes).
 reindent_node(Node, Out) :-
 	format(Out, '~s', [Node.string]).
+
+has_neck(Tree) :-
+	sub_node(Node, Tree),
+	Node.class = neck(_), !.
 
 leaf_node(Tree, Class, String) :-
 	sub_node(Node, Tree),
