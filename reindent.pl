@@ -27,19 +27,21 @@ reindent_node(Node, Out) :-
 	string_codes(Comment, Codes),
 	phrase(reindent_comment(Out), Codes).
 reindent_node(Node, Out) :-
+	_{class:directive} :< Node, !,
+	findall(node(Class, String),
+		leaf_node(Node, Class, String),
+		Nodes),
+	dump_leaves(Nodes),
+	(   phrase(reindent_directive, Nodes)
+	->  phrase(reindent_clause(Out), Nodes)
+	;   format(Out, '~s', [Node.string])
+	).
+reindent_node(Node, Out) :-
 	has_neck(Node), !,
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
 		Nodes),
 	dump_leaves(Nodes),
-	phrase(reindent_clause(Out), Nodes).
-reindent_node(Node, Out) :-
-	_{class:directive} :< Node,
-	findall(node(Class, String),
-		leaf_node(Node, Class, String),
-		Nodes),
-	dump_leaves(Nodes),
-	phrase(reindent_directive, Nodes), !,
 	phrase(reindent_clause(Out), Nodes).
 reindent_node(Node, Out) :-
 	format(Out, '~s', [Node.string]).
