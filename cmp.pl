@@ -12,12 +12,8 @@ compare(File1, File2) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ]),
-	(   current_prolog_flag(xref, Old)
-	->  true
-	;   Old = false
-	),
 	setup_call_cleanup(
-	    set_prolog_flag(xref, true),
+	    prepare(State),
 	    setup_call_cleanup(
 		prolog_open_source(Path1, In1),
 		setup_call_cleanup(
@@ -25,12 +21,33 @@ compare(File1, File2) :-
 		    compare_streams(In1, In2, 0, Errors),
 		    prolog_close_source(In2)),
 		prolog_close_source(In1)),
-	    set_prolog_flag(xref, Old)),
+	    restore(State)),
 	Errors == 0.
 
+prepare(state(Xref,SingleTon)) :-
+	(   current_prolog_flag(xref, Xref)
+	->  true
+	;   Xref = false
+	),
+	(   style_check(?(singleton))
+	->  SingleTon = true
+	;   SingleTon = false
+	),
+	set_prolog_flag(xref, true),
+	style_check(-singleton).
+
+restore(state(Xref,SingleTon)) :-
+	set_prolog_flag(xref, Xref),
+	(   SingleTon == true
+	->  style_check(+singleton)
+	;   style_check(-singleton)
+	).
+
+
 compare_streams(In1, In2, E0, E) :-
-	prolog_read_source_term(In1, Term1, _Exp1, []),
-	prolog_read_source_term(In2, Term2, _Exp2, []),
+	Options = [syntax_errors(error)],
+	prolog_read_source_term(In1, Term1, _Exp1, Options),
+	prolog_read_source_term(In2, Term2, _Exp2, Options),
 	(   Term1 =@= Term2
 	->  E1 = E0
 	;   format(user_error, 'MISMATCH: ~n~q \\=@=~n~q~n', [Term1, Term2]),
