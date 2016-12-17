@@ -98,7 +98,7 @@ reindent_line_prefix(Out) -->
 
 reindent_clause(Out) -->
 	copy_to_neck(Out),
-	reindent_body(Out).
+	reindent_body(Out, _{paren:0}).
 
 copy_to_neck(_), [node(neck(Type), String)] -->
 	[node(neck(Type), String)], !.
@@ -109,32 +109,44 @@ copy_to_neck(Out) -->
 copy_to_neck(_) -->
 	[].
 
-reindent_body(Out) -->
+reindent_body(Out, State) -->
+	[ node(paren_open, "(") ], !,
+	{ format(Out, '(', []),
+	  add_field(paren, State, 1, NewState)
+	},
+	reindent_body(Out, NewState).
+reindent_body(Out, State) -->
+	[ node(paren_close, ")") ], !,
+	{ format(Out, ')', []),
+	  add_field(paren, State, -1, NewState)
+	},
+	reindent_body(Out, NewState).
+reindent_body(Out, State) -->
 	[node(comment, Line), node(layout, String)],
 	{ sub_string(Line, 0, _, _, "%"),
 	  sub_string(String, 0, _, A, "        "), !,
 	  sub_string(String, _, A, 0, Rest),
 	  format(Out, '~s    ~s', [Line, Rest])
 	},
-	reindent_body(Out).
-reindent_body(Out) -->				% do not change layout after ->
+	reindent_body(Out, State).
+reindent_body(Out, State) -->				% do not change layout after ->
 	then,
 	layout(S),
 	cut, !,
 	{ format(Out, '->~s!', [S]) },
-	reindent_body(Out).
-reindent_body(Out) -->
+	reindent_body(Out, State).
+reindent_body(Out, State) -->
 	opt_layout(Before),
 	cut, and,
 	layout(After),
 	{ split_string(Before, "", "\s\t", [""]),
 	  split_string(After, "", "\n\s\t", [""]), !,
-	  reindent_layout(Out, After),
+	  reindent_layout(Out, After, State),
 	  format(Out, '!,', []),
-	  reindent_layout(Out, After)
+	  reindent_layout(Out, After, State)
 	},
-	reindent_body(Out).
-reindent_body(Out) -->
+	reindent_body(Out, State).
+reindent_body(Out, _State) -->
 	neck(Neck),
 	opt_layout(Layout),
 	cut,
@@ -142,21 +154,21 @@ reindent_body(Out) -->
 	{ split_string(Layout, "", "\s\t", [""]), !,
 	  format(Out, '~s !', [Neck,Layout])
 	}.
-reindent_body(Out) -->
+reindent_body(Out, _State) -->
 	cut,
 	eos, !,
 	{ format(Out, '\n    !', [])
 	}.
-reindent_body(Out) -->
+reindent_body(Out, State) -->
 	[node(layout, String)],
-	{ reindent_layout(Out, String) },
-	reindent_body(Out).
-reindent_body(Out) -->
+	{ reindent_layout(Out, String, State) },
+	reindent_body(Out, State).
+reindent_body(Out, State) -->
 	[node(_, String)], !,
 	{ format(Out, '~s', [String])
 	},
-	reindent_body(Out).
-reindent_body(_) -->
+	reindent_body(Out, State).
+reindent_body(_, _) -->
 	[].
 
 neck(Neck) -->
@@ -180,14 +192,20 @@ opt_layout(Layout) -->
 	;   { Layout = "" }
 	).
 
+%%	reindent_layout(+Out, +Layout, +State)
 
-reindent_layout(Out, String) :-
+reindent_layout(Out, String, State) :-
 	sub_string(String, B, _, A, "\n        "), !,
 	sub_string(String, 0, B, _, Lead),
 	sub_string(String, _, A, 0, Rest),
-	format(Out, '~s\n    ~s', [Lead, Rest]).
-reindent_layout(Out, String) :-
+	Indent is 4*(State.paren+1),
+	format(Out, '~s\n~t~*|~s', [Lead, Indent, Rest]).
+reindent_layout(Out, String, _) :-
 	format(Out, '~s', [String]).
+
+%%	reindent_directive// is semidet.
+%
+%	True if this is a directive we need to re-indent.
 
 reindent_directive -->
 	[ node(neck(directive), _),
@@ -197,3 +215,8 @@ reindent_directive -->
 	],
 	{ \+ sub_string(After, 0, _, _, "(") },
 	remainder(_).
+
+
+add_field(Field, State, Inc, NewState) :-
+	New is State.Field+Inc,
+	NewState = State.put(Field, New).
