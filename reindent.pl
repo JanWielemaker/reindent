@@ -33,16 +33,17 @@ reindent_node(Node, Out) :-
 		Nodes),
 	dump_leaves(Nodes),
 	(   phrase(reindent_directive, Nodes)
-	->  phrase(reindent_clause(Out), Nodes)
+	->  phrase(reindent_clause(Out, _{indent:8}), Nodes)
 	;   format(Out, '~s', [Node.string])
 	).
 reindent_node(Node, Out) :-
-	has_neck(Node), !,
+	has_neck(Node),
 	findall(node(Class, String),
 		leaf_node(Node, Class, String),
 		Nodes),
 	dump_leaves(Nodes),
-	phrase(reindent_clause(Out), Nodes).
+	phrase(body_indentation(Indent), Nodes), !,
+	phrase(reindent_clause(Out, _{indent:Indent}), Nodes).
 reindent_node(Node, Out) :-
 	format(Out, '~s', [Node.string]).
 
@@ -92,13 +93,29 @@ reindent_line_prefix(Out) -->
 	"%       ", !,
 	{ format(Out, '%   ', []) }.
 
-%%	reindent_clause(Out)//
+%%	body_indentation(-Indent)// is semidet.
+%
+%	Unify Indent with the current leading indentation of the body.
+
+body_indentation(Indent) -->
+	string(_),
+	neck(_), !,
+	string(_),
+	layout(Layout),
+	{ sub_string(Layout, _, _, A, "\n"),
+	  sub_string(Layout, _, A, 0, After),
+	  split_string(After, "", "\s", [""]), !,
+	  string_length(After, Indent)
+	},
+	remainder(_).
+
+%%	reindent_clause(+Out, +State)//
 %
 %	Reindent the remainder of the clause.
 
-reindent_clause(Out) -->
+reindent_clause(Out, State) -->
 	copy_to_neck(Out),
-	reindent_body(Out, _{paren:0}).
+	reindent_body(Out, State.put(paren,0)).
 
 copy_to_neck(_), [node(neck(Type), String)] -->
 	[node(neck(Type), String)], !.
@@ -110,25 +127,29 @@ copy_to_neck(_) -->
 	[].
 
 reindent_body(Out, State) -->
+	[node(comment, Line), node(layout, String)],
+	{ sub_string(Line, 0, _, _, "%"),
+	  leading_indent(Leading, State),
+	  sub_string(String, 0, _, A, Leading), !,
+	  sub_string(String, _, A, 0, Rest),
+	  format(Out, '~s    ~s', [Line, Rest])
+	},
+	reindent_body(Out, State).
+reindent_body(Out, State) -->
 	[ node(paren_open, "(") ], !,
 	{ format(Out, '(', []),
 	  add_field(paren, State, 1, NewState)
 	},
 	reindent_body(Out, NewState).
 reindent_body(Out, State) -->
+	reindent_if_then_else_control(Out, State), !,
+	reindent_body(Out, State).
+reindent_body(Out, State) -->
 	[ node(paren_close, ")") ], !,
 	{ format(Out, ')', []),
 	  add_field(paren, State, -1, NewState)
 	},
 	reindent_body(Out, NewState).
-reindent_body(Out, State) -->
-	[node(comment, Line), node(layout, String)],
-	{ sub_string(Line, 0, _, _, "%"),
-	  sub_string(String, 0, _, A, "        "), !,
-	  sub_string(String, _, A, 0, Rest),
-	  format(Out, '~s    ~s', [Line, Rest])
-	},
-	reindent_body(Out, State).
 reindent_body(Out, State) -->				% do not change layout after ->
 	then,
 	layout(S),
@@ -160,7 +181,7 @@ reindent_body(Out, _State) -->
 	{ format(Out, '\n    !', [])
 	}.
 reindent_body(Out, State) -->
-	[node(layout, String)],
+	[node(layout, String)], !,
 	{ reindent_layout(Out, String, State) },
 	reindent_body(Out, State).
 reindent_body(Out, State) -->
@@ -170,6 +191,22 @@ reindent_body(Out, State) -->
 	reindent_body(Out, State).
 reindent_body(_, _) -->
 	[].
+
+reindent_if_then_else_control(Out, State), [node(control,Control)] -->
+	layout(Layout), [node(control,Control)],
+	{ if_then_else_token(Control), !,
+	  add_field(paren, State, -1, TmpState),
+	  reindent_layout(Out, Layout, TmpState)
+	}.
+reindent_if_then_else_control(Out, State), [node(paren_close,")")] -->
+	layout(Layout), [node(paren_close,")")], !,
+	{ add_field(paren, State, -1, TmpState),
+	  reindent_layout(Out, Layout, TmpState)
+	}.
+
+if_then_else_token("->").
+if_then_else_token("*->").
+if_then_else_token(";").
 
 neck(Neck) -->
 	[ node(neck(_), Neck) ].
@@ -195,13 +232,26 @@ opt_layout(Layout) -->
 %%	reindent_layout(+Out, +Layout, +State)
 
 reindent_layout(Out, String, State) :-
-	sub_string(String, B, _, A, "\n        "), !,
+	nl_leading_indent(Leading, State),
+	sub_string(String, B, _, A, Leading), !,
 	sub_string(String, 0, B, _, Lead),
 	sub_string(String, _, A, 0, Rest),
 	Indent is 4*(State.paren+1),
 	format(Out, '~s\n~t~*|~s', [Lead, Indent, Rest]).
 reindent_layout(Out, String, _) :-
 	format(Out, '~s', [String]).
+
+leading_indent(String, State) :-
+	InIndent is State.indent + 4*State.paren,
+	length(Chars, InIndent),
+	maplist(=(0'\s), Chars),
+	string_codes(String, Chars).
+
+nl_leading_indent(String, State) :-
+	InIndent is State.indent + 4*State.paren,
+	length(Chars, InIndent),
+	maplist(=(0'\s), Chars),
+	string_codes(String, [0'\n|Chars]).
 
 %%	reindent_directive// is semidet.
 %
