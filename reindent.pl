@@ -3,6 +3,7 @@
 	  ]).
 :- use_module(parse).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
 :- use_module(library(dcg/basics)).
 
 
