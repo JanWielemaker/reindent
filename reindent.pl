@@ -143,7 +143,7 @@ reindent_body(Out, State) -->
 	  pop_paren(State, _OpenIndent, NewState)
 	},
 	reindent_body(Out, NewState).
-reindent_body(Out, State) -->				% do not change layout after ->
+reindent_body(Out, State) -->		% do not change layout after ->
 	if_then_else(Token),
 	layout(S),
 	cut, !,
