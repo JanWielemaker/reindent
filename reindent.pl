@@ -127,12 +127,12 @@ copy_to_neck(_) -->
 	[].
 
 reindent_body(Out, State) -->
-	[node(comment, Line), node(layout, String)],
-	{ sub_string(Line, 0, _, _, "%"),
-	  leading_indent(Leading, State),
-	  sub_string(String, 0, _, A, Leading), !,
-	  sub_string(String, _, A, 0, Rest),
-	  format(Out, '~s    ~s', [Line, Rest])
+	[node(comment, Line), node(layout, Layout0)],
+	{ sub_string(Line, 0, _, _, "%"), !,
+	  string_concat(Comment, "\n", Line),
+	  string_concat("\n", Layout0, Layout),
+	  format(Out, '~s', [Comment]),
+	  reindent_layout(Out, Layout, State)
 	},
 	reindent_body(Out, State).
 reindent_body(Out, State) -->
@@ -151,10 +151,10 @@ reindent_body(Out, State) -->
 	},
 	reindent_body(Out, NewState).
 reindent_body(Out, State) -->				% do not change layout after ->
-	then,
+	if_then_else(Token),
 	layout(S),
 	cut, !,
-	{ format(Out, '->~s!', [S]) },
+	{ format(Out, '~s~s!', [Token, S]) },
 	reindent_body(Out, State).
 reindent_body(Out, State) -->
 	opt_layout(Before),
@@ -208,6 +208,10 @@ if_then_else_token("->").
 if_then_else_token("*->").
 if_then_else_token(";").
 
+if_then_else(S) -->
+	[ node(control, S) ],
+	{ if_then_else_token(S) }.
+
 neck(Neck) -->
 	[ node(neck(_), Neck) ].
 
@@ -216,9 +220,6 @@ cut -->
 
 and -->
 	[ node(control, ",") ].
-
-then -->
-	[ node(control, "->") ].
 
 layout(Layout) -->
 	[node(layout, Layout)].
