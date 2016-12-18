@@ -115,7 +115,7 @@ body_indentation(Indent) -->
 
 reindent_clause(Out, State) -->
 	copy_to_neck(Out),
-	reindent_body(Out, State.put(paren,0)).
+	reindent_body(Out, State.put(paren,[])).
 
 copy_to_neck(_), [node(neck(Type), String)] -->
 	[node(neck(Type), String)], !.
@@ -128,8 +128,9 @@ copy_to_neck(_) -->
 
 reindent_body(Out, State) -->
 	[ node(paren_open, "(") ], !,
-	{ format(Out, '(', []),
-	  add_field(paren, State, 1, NewState)
+	{ line_position(Out, Indent),
+	  format(Out, '(', []),
+	  push_paren(State, Indent, NewState)
 	},
 	reindent_body(Out, NewState).
 reindent_body(Out, State) -->
@@ -138,7 +139,7 @@ reindent_body(Out, State) -->
 reindent_body(Out, State) -->
 	[ node(paren_close, ")") ], !,
 	{ format(Out, ')', []),
-	  add_field(paren, State, -1, NewState)
+	  pop_paren(State, _OpenIndent, NewState)
 	},
 	reindent_body(Out, NewState).
 reindent_body(Out, State) -->				% do not change layout after ->
@@ -186,12 +187,12 @@ reindent_body(_, _) -->
 reindent_if_then_else_control(Out, State), [node(control,Control)] -->
 	layout(Layout), [node(control,Control)],
 	{ if_then_else_token(Control), !,
-	  add_field(paren, State, -1, TmpState),
+	  pop_paren(State, _OpenIndent, TmpState),
 	  reindent_layout(Out, Layout, TmpState)
 	}.
 reindent_if_then_else_control(Out, State), [node(paren_close,")")] -->
 	layout(Layout), [node(paren_close,")")], !,
-	{ add_field(paren, State, -1, TmpState),
+	{ pop_paren(State, _OpenIndent, TmpState),
 	  reindent_layout(Out, Layout, TmpState)
 	}.
 
@@ -228,19 +229,15 @@ reindent_layout(Out, String, State) :-
 	sub_string(String, B, _, A, Leading), !,
 	sub_string(String, 0, B, _, Lead),
 	sub_string(String, _, A, 0, Rest),
-	Indent is 4*(State.paren+1),
+	state_paren_count(State, Nest),
+	Indent is 4*(Nest+1),
 	format(Out, '~s\n~t~*|~s', [Lead, Indent, Rest]).
 reindent_layout(Out, String, _) :-
 	format(Out, '~s', [String]).
 
-leading_indent(String, State) :-
-	InIndent is State.indent + 4*State.paren,
-	length(Chars, InIndent),
-	maplist(=(0'\s), Chars),
-	string_codes(String, Chars).
-
 nl_leading_indent(String, State) :-
-	InIndent is State.indent + 4*State.paren,
+	state_paren_count(State, Nest),
+	InIndent is State.indent + 4*Nest,
 	length(Chars, InIndent),
 	maplist(=(0'\s), Chars),
 	string_codes(String, [0'\n|Chars]).
@@ -259,6 +256,15 @@ reindent_directive -->
 	remainder(_).
 
 
-add_field(Field, State, Inc, NewState) :-
-	New is State.Field+Inc,
-	NewState = State.put(Field, New).
+		 /*******************************
+		 *	  STATE HANDLING	*
+		 *******************************/
+
+push_paren(State, Indent, NewState) :-
+	NewState = State.put(paren, [Indent|State.paren]).
+pop_paren(State, Indent, NewState) :-
+	[Indent|Rest] = State.paren,
+	NewState = State.put(paren, Rest).
+
+state_paren_count(State, Nest) :-
+	length(State.paren, Nest).
