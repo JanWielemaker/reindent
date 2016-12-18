@@ -43,6 +43,9 @@ on_item(parentheses, Start, Length) :- !,
 	assert(fragment(Start, S1,  paren_open)),
 	assert(fragment(E0,    End, paren_close)),
 	assert(fragment(Start, End, parentheses)).
+on_item(comment(line), Start, Length) :- !,	% remove newline from comment
+	End is Start+Length-1,
+	assert(fragment(Start, End, comment(line))).
 on_item(Type, Start, Length) :-
 	End is Start+Length,
 	assert(fragment(Start, End, Type)).

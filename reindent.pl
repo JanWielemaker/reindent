@@ -23,7 +23,7 @@ reindent_nodes([H|T], Out) :- reindent_node(H, Out), reindent_nodes(T, Out).
 
 
 reindent_node(Node, Out) :-
-	_{class:structured_comment, string:Comment} :< Node, !,
+	_{class:comment(structured), string:Comment} :< Node, !,
 	string_codes(Comment, Codes),
 	phrase(reindent_comment(Out), Codes).
 reindent_node(Node, Out) :-
@@ -126,15 +126,6 @@ copy_to_neck(Out) -->
 copy_to_neck(_) -->
 	[].
 
-reindent_body(Out, State) -->
-	[node(comment, Line), node(layout, Layout0)],
-	{ sub_string(Line, 0, _, _, "%"), !,
-	  string_concat(Comment, "\n", Line),
-	  string_concat("\n", Layout0, Layout),
-	  format(Out, '~s', [Comment]),
-	  reindent_layout(Out, Layout, State)
-	},
-	reindent_body(Out, State).
 reindent_body(Out, State) -->
 	[ node(paren_open, "(") ], !,
 	{ format(Out, '(', []),
