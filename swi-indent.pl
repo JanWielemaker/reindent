@@ -61,6 +61,7 @@ help :-
     format('  --output=dir     Place output in directory~n'),
     format('  --lib=dir        Add libarry directory~n'),
     format('  --test           Show output in less(1)~n'),
+    format('  --dryrun         Do not change any files~n'),
     format('  --debug=topic    Enable debug topic (may be repeated)~n'),
     format('  --spy=predicate  Spy predicate (may be repeated)~n').
 
@@ -100,6 +101,10 @@ finish(_File, NewFile, Options) :-
     option(test(true), Options),
     !,
     process_create(path(less), [file(NewFile)], []),
+    delete_file(NewFile).
+finish(_File, NewFile, Options) :-
+    option(dryrun(true), Options),
+    !,
     delete_file(NewFile).
 finish(File, NewFile, _Options) :-
     copy_file(NewFile, File),
