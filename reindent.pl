@@ -150,7 +150,7 @@ reindent_body(Out, State) -->		% do not change layout after ->
 	{ format(Out, '~s~s!', [Token, S]) },
 	reindent_body(Out, State).
 reindent_body(Out, State) -->
-	opt_layout(Before),
+	layout(Before),
 	cut, and,
 	layout(After),
 	{ sub_string(After, _, _, _, "\n"),
