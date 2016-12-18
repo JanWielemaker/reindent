@@ -5,6 +5,7 @@
             check_node/1                % +Tree
           ]).
 :- use_module(library(prolog_colour)).
+:- use_module(library(prolog_source)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
 
@@ -17,10 +18,23 @@ parse_source(File, Tree) :-
                          access(read)
                        ]),
     setup_call_cleanup(
-        open(Path, read, In),
-        parse_stream(In, Path, Tree0),
-        close(In)),
+        prepare(State),
+        setup_call_cleanup(
+            prolog_open_source(Path, In),
+            parse_stream(In, Path, Tree0),
+            prolog_close_source(In)),
+        restore(State)),
     add_layout(Tree0, Tree).
+
+prepare(state(Xref)) :-
+    (   current_prolog_flag(xref, Xref)
+    ->  true
+    ;   Xref = false
+    ),
+    set_prolog_flag(xref, true).
+
+restore(state(Xref)) :-
+    set_prolog_flag(xref, Xref).
 
 parse_stream(In, Path,
              fragment{start:0, end:Len, class:file,
@@ -87,7 +101,7 @@ sub_fragments([F|R0], End, String, Sub, Rest) :-
 add_layout(TreeIn, TreeOut) :-
     maplist(add_layout, TreeIn.children, Children1),
     add_layout(Children1, TreeIn.start, TreeIn.string, TreeIn.start, AllChildren),
-    TreeOut = TreeIn.put(children, AllChildren), 
+    TreeOut = TreeIn.put(children, AllChildren),
     !.
 
 add_layout([], Offset, _, Offset, []) :- !.
@@ -130,7 +144,7 @@ sub_node(Sub, Node) :-
                  *******************************/
 
 check_node(Node) :-
-    Node.children == [], 
+    Node.children == [],
     !.
 check_node(Node) :-
     maplist(get_dict(string), Node.children, SubStrings),
