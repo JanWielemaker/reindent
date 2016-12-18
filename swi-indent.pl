@@ -37,6 +37,9 @@ set_options([debug(Topic)|T0], T) :- !,
 set_options([spy(Predicate)|T0], T) :- !,
 	gspy(Predicate),
 	set_options(T0, T).
+set_options([lib(Dir)|T0], T) :- !,
+	asserta(user:file_search_path(library, Dir)),
+	set_options(T0, T).
 set_options([H|T0], [H|T]) :- !,
 	set_options(T0, T).
 
@@ -51,6 +54,7 @@ help :-
 	format('  --help           Print usage~n'),
 	format('  --output=file    Place output in file (only one input)~n'),
 	format('  --output=dir     Place output in directory~n'),
+	format('  --lib=dir        Add libarry directory~n'),
 	format('  --test           Show output in less(1)~n'),
 	format('  --debug=topic    Enable debug topic (may be repeated)~n'),
 	format('  --spy=predicate  Spy predicate (may be repeated)~n').
