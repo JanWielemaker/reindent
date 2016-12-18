@@ -7,6 +7,7 @@
 :- use_module(library(main)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
+:- use_module(library(option)).
 
 :- initialization main.
 
@@ -17,7 +18,17 @@
 main(Argv) :-
 	argv_options(Argv, Files, Options),
 	set_options(Options, RestOptions),
-	maplist({RestOptions}/[File]>>expand_file(File, RestOptions), Files).
+	main(Files, RestOptions).
+
+main(_, Options) :-
+	option(help(true), Options),
+	help.
+main([File], Options) :-
+	option(output(Output), Options),
+	\+ exists_directory(Output), !,
+	expand_file(File, Output, Options).
+main(Files, Options) :-
+	maplist({Options}/[File]>>expand_file(File, Options), Files).
 
 set_options([], []).
 set_options([debug(Topic)|T0], T) :- !,
@@ -30,6 +41,40 @@ set_options([H|T0], [H|T]) :- !,
 	set_options(T0, T).
 
 
+%%	help
+%
+%	Print help
+
+help :-
+	format('Usage: swi-indent.pl [options] file ...~n', []),
+	format('Options:~n~n'),
+	format('  --help           Print usage~n'),
+	format('  --output=file    Place output in file (only one input)~n'),
+	format('  --output=dir     Place output in directory~n'),
+	format('  --test           Show output in less(1)~n'),
+	format('  --debug=topic    Enable debug topic (may be repeated)~n'),
+	format('  --spy=predicate  Spy predicate (may be repeated)~n').
+
+%%	expand_file(+File, +Output, +Options)
+%
+%	Expand a single file to a target file.
+
+expand_file(File, Output, _Options) :-
+	format(user_error, 'Reindent ~w (tabs) ... ', [File]),
+	run(expand(File, Output), tabs),
+	run(reindent(Output, Output), reindent),
+	run(compare(File, Output), cmp),
+	format(user_error, '~n', []).
+
+%%	expand_file(+File, +Options) is semidet.
+%
+%	Expand a single file in-place.
+
+expand_file(File, Options) :-
+	option(output(Dir), Options), !,
+	file_base_name(File, Base),
+	directory_file_path(Dir, Base, Output),
+	expand_file(File, Output, Options).
 expand_file(File, Options) :-
 	format(user_error, 'Reindent ~w (tabs) ... ', [File]),
 	file_name_extension(File, new, NewFile),
