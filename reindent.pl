@@ -161,6 +161,22 @@ reindent_body(Out, State) -->
 	  reindent_layout(Out, After, State)
 	},
 	reindent_body(Out, State).
+reindent_body(Out, State) -->
+	layout(Before),
+	cut, and,
+	opt_layout(Between),
+	[node(comment(line), Comment)],
+	layout(After),
+	{ sub_string(After, _, _, _, "\n"),
+	  split_string(Before, "", "\s\t", [""]),
+	  split_string(Between, "", "\s\t", [""]),
+	  split_string(After, "", "\n\s\t", [""]), !,
+	  format(Out, "  ~s~s", [Between, Comment]),
+	  reindent_layout(Out, After, State),
+	  format(Out, '!,', []),
+	  reindent_layout(Out, After, State)
+	},
+	reindent_body(Out, State).
 reindent_body(Out, _State) -->
 	neck(Neck),
 	opt_layout(Layout),
