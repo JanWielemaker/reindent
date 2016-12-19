@@ -53,7 +53,7 @@ reindent_node(Node, Out) :-
 
 has_neck(Tree) :-
     sub_node(Node, Tree),
-    Node.class = neck(_), 
+    Node.class = neck(_),
     !.
 
 leaf_node(Tree, Class, String) :-
@@ -131,7 +131,7 @@ reindent_clause(Out, State) -->
     reindent_body(Out, State.put(paren,[])).
 
 copy_to_neck(_), [node(neck(Type), String)] -->
-    [node(neck(Type), String)], 
+    [node(neck(Type), String)],
     !.
 copy_to_neck(Out) -->
     [node(_, String)],
@@ -207,10 +207,12 @@ reindent_body(Out, _State) -->
       format(Out, '~s !', [Neck,Layout])
     }.
 reindent_body(Out, _State) -->
+    layout(Layout),
     cut,
     eos,
-    !,
-    { format(Out, '\n    !', [])
+    { split_string(Layout, "", "\s\t", [""]),
+      !,
+      format(Out, '\n    !', [])
     }.
 reindent_body(Out, State) -->
     [node(layout, String)],
