@@ -34,7 +34,10 @@ main(Files, Options) :-
 set_options([], []).
 set_options([debug(Topic)|T0], T) :-
     !,
-    debug(Topic),
+    (   Topic == true
+    ->  debug
+    ;   debug(Topic)
+    ),
     set_options(T0, T).
 set_options([spy(Predicate)|T0], T) :-
     !,
