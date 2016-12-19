@@ -50,10 +50,20 @@ compare_streams(In1, In2, E0, E) :-
     prolog_read_source_term(In2, Term2, _Exp2, Options),
     (   Term1 =@= Term2
     ->  E1 = E0
-    ;   format(user_error, 'MISMATCH: ~n~q \\=@=~n~q~n', [Term1, Term2]),
+    ;   print_message(error, cmp(diff(Term1, Term2))),
         E1 is E0+1
     ),
     (   Term1 == end_of_file
     ->  E = E1
     ;   compare_streams(In1, In2, E1, E)
     ).
+
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+prolog:message(cmp(diff(Term1, Term2))) -->
+    [ 'MISMATCH:'-[], nl,
+      '~q \\=@='-[Term1], nl,
+      '~q'-[Term2]
+    ].

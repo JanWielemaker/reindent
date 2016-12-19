@@ -65,6 +65,7 @@ help :-
     format('  --lib=dir        Add libarry directory~n'),
     format('  --test           Show output in less(1)~n'),
     format('  --dryrun         Do not change any files~n'),
+    format('  --force          Ignore changes while comparing~n'),
     format('  --debug=topic    Enable debug topic (may be repeated)~n'),
     format('  --spy=predicate  Spy predicate (may be repeated)~n').
 
@@ -94,7 +95,10 @@ expand_file(File, Options) :-
     file_name_extension(File, new, NewFile),
     run(expand(File, NewFile), tabs),
     run(reindent(NewFile, NewFile), reindent),
-    (   run(compare(File, NewFile), cmp)
+    (   (   run(compare(File, NewFile), cmp)
+        ;   option(force(true), Options),
+            print_message(warning, cmp(ignored))
+        )
     ->  finish(File, NewFile, Options)
     ;   fail
     ),
@@ -138,3 +142,11 @@ yesno(Goal, YesNo) :-
     ;   YesNo = error(E)
     ).
 yesno(_Goal, false).
+
+
+		 /*******************************
+		 *             MESSAGES		*
+		 *******************************/
+
+prolog:message(cmp(ignored)) -->
+    [ 'Ignored failed comparison'-[] ].
