@@ -31,20 +31,14 @@ reindent_node(Node, Out) :-
 reindent_node(Node, Out) :-
     _{class:directive} :< Node,
     !,
-    findall(node(Class, String),
-            leaf_node(Node, Class, String),
-            Nodes),
-    dump_leaves(Nodes),
+    leaves(Node, Nodes),
     (   phrase(reindent_directive, Nodes)
     ->  phrase(reindent_clause(Out, _{indent:8}), Nodes)
     ;   format(Out, '~s', [Node.string])
     ).
 reindent_node(Node, Out) :-
     has_neck(Node),
-    findall(node(Class, String),
-            leaf_node(Node, Class, String),
-            Nodes),
-    dump_leaves(Nodes),
+    leaves(Node, Nodes),
     phrase(body_indentation(Indent), Nodes),
     !,
     phrase(reindent_clause(Out, _{indent:Indent}), Nodes).
@@ -55,6 +49,28 @@ has_neck(Tree) :-
     sub_node(Node, Tree),
     Node.class = neck(_),
     !.
+
+leaves(Tree, Leaves) :-
+    findall(node(Class, String),
+            leaf_node(Tree, Class, String),
+            Leaves0),
+    insert_empty_layout(Leaves0, Leaves),
+    dump_leaves(Leaves).
+
+insert_empty_layout([], []).
+insert_empty_layout([Layout|T0], [Layout|T]) :-
+    Layout = node(layout, _),
+    !,
+    insert_empty_layout(T0, T).
+insert_empty_layout([NoLayout1, NoLayout2|T0],
+                    [NoLayout1, node(layout, "")|T]) :-
+    NoLayout1 \= node(layout, _),
+    NoLayout2 \= node(layout, _),
+    !,
+    insert_empty_layout([NoLayout2|T0], T).
+insert_empty_layout([NoLayout1|T0], [NoLayout1|T]) :-
+    insert_empty_layout(T0, T).
+
 
 leaf_node(Tree, Class, String) :-
     sub_node(Node, Tree),
@@ -172,7 +188,7 @@ reindent_body(Out, State) -->           % do not change layout after ->
     reindent_body(Out, State).
 reindent_body(Out, State) -->
     layout(Before),
-    cut, and,
+    cut, layout(""), and,
     layout(After),
     { sub_string(After, _, _, _, "\n"),
       split_string(Before, "", "\s\t", [""]),
@@ -185,8 +201,8 @@ reindent_body(Out, State) -->
     reindent_body(Out, State).
 reindent_body(Out, State) -->
     layout(Before),
-    cut, and,
-    opt_layout(Between),
+    cut, layout(""), and,
+    layout(Between),
     [node(comment(line), Comment)],
     layout(After),
     { sub_string(After, _, _, _, "\n"),
@@ -202,7 +218,7 @@ reindent_body(Out, State) -->
     reindent_body(Out, State).
 reindent_body(Out, _State) -->          % :- !
     neck(Neck),
-    opt_layout(Layout),
+    layout(Layout),
     cut,
     eos,
     { split_string(Layout, "", "\s\t", [""]),
@@ -272,12 +288,6 @@ and -->
 
 layout(Layout) -->
     [node(layout, Layout)].
-
-opt_layout(Layout) -->
-    (   [node(layout, Layout)]
-    ->  []
-    ;   { Layout = "" }
-    ).
 
 %!  reindent_layout(+Out, +Layout, +State)
 
