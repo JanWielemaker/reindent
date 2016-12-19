@@ -8,6 +8,7 @@
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
+:- use_module(library(dcg/basics)).
 
 :- initialization main.
 
@@ -39,9 +40,9 @@ set_options([debug(Topic)|T0], T) :-
     ;   debug(Topic)
     ),
     set_options(T0, T).
-set_options([spy(Predicate)|T0], T) :-
+set_options([spy(Spec)|T0], T) :-
     !,
-    gspy(Predicate),
+    setup_spy(Spec),
     set_options(T0, T).
 set_options([lib(Dir)|T0], T) :-
     !,
@@ -51,6 +52,17 @@ set_options([H|T0], [H|T]) :-
     !,
     set_options(T0, T).
 
+
+setup_spy(Spec) :-
+    atom_codes(Spec, Codes),
+    phrase((string(NameCodes), "/", string(ArityCodes)), Codes),
+    catch(number_codes(Arity, ArityCodes), _, fail), !,
+    atom_codes(Name, NameCodes),
+    guitracer,
+    spy(Name/Arity).
+setup_spy(Spec) :-
+    guitracer,
+    spy(Spec).
 
 %!  help
 %
