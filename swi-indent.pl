@@ -48,6 +48,10 @@ set_options([lib(Dir)|T0], T) :-
     !,
     asserta(user:file_search_path(library, Dir)),
     set_options(T0, T).
+set_options([pce(true)|T0], T) :-
+    !,
+    use_module(library(pce)),
+    set_options(T0, T).
 set_options([H|T0], [H|T]) :-
     !,
     set_options(T0, T).
@@ -79,7 +83,8 @@ help :-
     format('  --dryrun         Do not change any files~n'),
     format('  --force          Ignore changes while comparing~n'),
     format('  --debug=topic    Enable debug topic (may be repeated)~n'),
-    format('  --spy=predicate  Spy predicate (may be repeated)~n').
+    format('  --spy=predicate  Spy predicate (may be repeated)~n'),
+    format('  --pce            Load library(pce) for colour support~n').
 
 %!  expand_file(+File, +Output, +Options)
 %
