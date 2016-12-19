@@ -83,6 +83,9 @@ copy_to_eol(Out) -->
     "\n",
     !,
     { format(Out, '~n', []) }.
+copy_to_eol(_Out) -->
+    eos,
+    !.
 copy_to_eol(Out) -->
     [C],
     !,
@@ -197,7 +200,7 @@ reindent_body(Out, State) -->
       reindent_layout(Out, After, State)
     },
     reindent_body(Out, State).
-reindent_body(Out, _State) -->
+reindent_body(Out, _State) -->          % :- !
     neck(Neck),
     opt_layout(Layout),
     cut,
@@ -206,7 +209,7 @@ reindent_body(Out, _State) -->
       !,
       format(Out, '~s !', [Neck,Layout])
     }.
-reindent_body(Out, _State) -->
+reindent_body(Out, _State) -->          % ! at end of clause
     layout(Layout),
     cut,
     eos,
@@ -214,18 +217,26 @@ reindent_body(Out, _State) -->
       !,
       format(Out, '\n    !', [])
     }.
-reindent_body(Out, State) -->
+reindent_body(Out, State) -->           % in-body full-line comments
+    layout("\n"),
+    [ node(comment(line), Comment) ], !,
+    { format(Out, "\n", []),
+      string_codes(Comment, Codes),
+      phrase(reindent_comment(Out), Codes)
+    },
+    reindent_body(Out, State).
+reindent_body(Out, State) -->           % Layout
     [node(layout, String)],
     !,
     { reindent_layout(Out, String, State) },
     reindent_body(Out, State).
-reindent_body(Out, State) -->
+reindent_body(Out, State) -->           % Any other node
     [node(_, String)],
     !,
     { format(Out, '~s', [String])
     },
     reindent_body(Out, State).
-reindent_body(_, _) -->
+reindent_body(_, _) -->                 % end of input
     [].
 
 reindent_if_then_else_control(Out, State), [node(control,Control)] -->
