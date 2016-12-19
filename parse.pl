@@ -8,6 +8,7 @@
 :- use_module(library(prolog_source)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 
 :- thread_local
     fragment/3.
@@ -76,7 +77,7 @@ fragment_hierarchy([fragment(S,E,C)|Rest0], String,
                    [fragment{start:S,end:E,class:C,
                              string:FString,children:Sub}|Rest]) :-
     Len is E-S,
-    sub_string(String, S, Len, _, FString),
+    take_sub(String, S, Len, FString),
     sub_fragments(Rest0, E, String, Sub, Rest1),
     fragment_hierarchy(Rest1, String, Rest).
 
@@ -85,7 +86,7 @@ sub_fragments([F|R0], End, String, Sub, Rest) :-
     F = fragment(SF,EF,C),
     (   EF =< End
     ->  Len is EF-SF,
-        sub_string(String, SF, Len, _, SubStr),
+        take_sub(String, SF, Len, SubStr),
         Sub = [fragment{start:SF,end:EF,class:C,
                         string:SubStr,children:FSub}|RSub],
         sub_fragments(R0, EF, String, FSub, R1),
@@ -93,6 +94,13 @@ sub_fragments([F|R0], End, String, Sub, Rest) :-
     ;   Sub = [],
         Rest = [F|R0]
     ).
+
+take_sub(From, Start, Len, Sub) :-
+    sub_string(From, Start, Len, _, Sub), !.
+take_sub(From, Start, Len, _Sub) :-
+    string_length(From, SLen),
+    End is Start + Len,
+    domain_error(string_range(SLen), Start-End).
 
 %!  add_layout(+TreeIn, -TreeOut)
 %
