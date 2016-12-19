@@ -18,11 +18,12 @@ parse_source(File, Tree) :-
                        [ file_type(prolog),
                          access(read)
                        ]),
+    read_file_to_string(Path, String, []),
     setup_call_cleanup(
         prepare(State),
         setup_call_cleanup(
             prolog_open_source(Path, In),
-            parse_stream(In, Path, Tree0),
+            parse_stream(In, Path, String, Tree0),
             prolog_close_source(In)),
         restore(State)),
     add_layout(Tree0, Tree).
@@ -37,13 +38,11 @@ prepare(state(Xref)) :-
 restore(state(Xref)) :-
     set_prolog_flag(xref, Xref).
 
-parse_stream(In, Path,
+parse_stream(In, Path, String,
              fragment{start:0, end:Len, class:file,
                       string:String, children:Terms}) :-
-    stream_property(In, position(Pos0)),
+    string_length(String, Len),
     prolog_colourise_stream(In, Path, on_item),
-    set_stream_position(In, Pos0),
-    read_string(In, Len, String),
     findall(fragment(Start, Length, Type),
             retract(fragment(Start, Length, Type)),
             Tokens0),
