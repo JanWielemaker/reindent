@@ -1,4 +1,4 @@
-#!/home/jan/bin/swipl
+#!/usr/bin/env swipl
 
 :- use_module(expand).
 :- use_module(library(yall)).
