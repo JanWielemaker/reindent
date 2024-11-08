@@ -33,7 +33,7 @@
 :- module(expand_tabs,
           [ file_expand_tabs/3          % +FileIn, +FileOut, +Options
           ]).
-:- use_module(parse).
+:- use_module(parse_source).
 :- use_module(library(debug)).
 :- use_module(library(dcg/basics)).
 :- use_module(library(option)).

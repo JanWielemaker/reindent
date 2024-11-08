@@ -1,3 +1,35 @@
+/*  Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2024, SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- module(parse_source,
           [ parse_source/2,             % +File, -Tree
             sub_node/2,                 % -Sub, +Tree
@@ -12,6 +44,28 @@
 
 :- thread_local
     fragment/3.
+
+%!  parse_source(+File, -Tree) is det.
+%
+%   Parse  a  Prolog  source  file  into   a  Tree  that  expresses  the
+%   syntactical structure. The idea of this   representation  is that it
+%   allows for safe manipulation  of  the   term  layout  or syntactical
+%   representation.
+%
+%   Each node of the tree is a dict holding
+%
+%     - start
+%       Start index (character based)
+%     - end
+%       End index (character based)
+%     - string
+%       Text
+%     - class
+%       Syntactical class (from library(prolog_colour), using two
+%       additonional classes: `file` for the root node and `layout`
+%       for sequences of white space between annotated elements.
+%     - children
+%       List of child nodes.
 
 parse_source(File, Tree) :-
     absolute_file_name(File, Path,

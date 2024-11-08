@@ -1,7 +1,7 @@
 :- module(reindent,
           [ reindent/2
           ]).
-:- use_module(parse).
+:- use_module(parse_source).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(dcg/basics)).
