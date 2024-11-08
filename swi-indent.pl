@@ -1,6 +1,6 @@
 #!/usr/bin/env swipl
 
-:- use_module(expand).
+:- use_module(expand_tabs).
 :- use_module(library(yall)).
 :- use_module(reindent).
 :- use_module(cmp_source).
@@ -90,9 +90,9 @@ help :-
 %
 %   Expand a single file to a target file.
 
-expand_file(File, Output, _Options) :-
+expand_file(File, Output, Options) :-
     format(user_error, 'Reindent ~w (tabs) ... ', [File]),
-    run(expand(File, Output), tabs),
+    run(file_expand_tabs(File, Output, Options), tabs),
     run(reindent(Output, Output), reindent),
     run(cmp_prolog_source(File, Output), cmp),
     format(user_error, '~n', []).
@@ -110,7 +110,7 @@ expand_file(File, Options) :-
 expand_file(File, Options) :-
     format(user_error, 'Reindent ~w (tabs) ... ', [File]),
     file_name_extension(File, new, NewFile),
-    run(expand(File, NewFile), tabs),
+    run(file_expand_tabs(File, NewFile, Options), tabs),
     run(reindent(NewFile, NewFile), reindent),
     (   (   run(cmp_prolog_source(File, NewFile), cmp)
         ;   option(force(true), Options),
