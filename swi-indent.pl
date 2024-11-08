@@ -3,7 +3,7 @@
 :- use_module(expand).
 :- use_module(library(yall)).
 :- use_module(reindent).
-:- use_module(cmp).
+:- use_module(cmp_source).
 :- use_module(library(main)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
@@ -94,7 +94,7 @@ expand_file(File, Output, _Options) :-
     format(user_error, 'Reindent ~w (tabs) ... ', [File]),
     run(expand(File, Output), tabs),
     run(reindent(Output, Output), reindent),
-    run(compare(File, Output), cmp),
+    run(cmp_prolog_source(File, Output), cmp),
     format(user_error, '~n', []).
 
 %!  expand_file(+File, +Options) is semidet.
@@ -112,7 +112,7 @@ expand_file(File, Options) :-
     file_name_extension(File, new, NewFile),
     run(expand(File, NewFile), tabs),
     run(reindent(NewFile, NewFile), reindent),
-    (   (   run(compare(File, NewFile), cmp)
+    (   (   run(cmp_prolog_source(File, NewFile), cmp)
         ;   option(force(true), Options),
             print_message(warning, cmp(ignored))
         )
