@@ -1,14 +1,45 @@
-#!/usr/bin/env swipl
+/*  Author:        Jan Wielemaker
+    E-mail:        jan@swi-prolog.org
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2024, SWI-Prolog Solutions b.v.
+    All rights reserved.
 
-:- use_module(expand_tabs).
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
 :- use_module(library(yall)).
-:- use_module(reindent).
-:- use_module(cmp_source).
 :- use_module(library(main)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
 :- use_module(library(dcg/basics)).
+
+:- use_module('../prolog/expand_tabs').
+:- use_module('../prolog/reindent').
+:- use_module('../prolog/cmp_source').
 
 :- initialization main.
 
@@ -21,9 +52,33 @@ main(Argv) :-
     set_options(Options, RestOptions),
     main(Files, RestOptions).
 
-main(_, Options) :-
-    option(help(true), Options),
-    help.
+opt_type(output,       output,       file(write)|directory(write)).
+opt_type(tab_distance, tab_distance, natural).
+opt_type(lib,          lib,          directory(read)).
+opt_type(test,         test,         boolean).
+opt_type(dryrun,       dryrun,       boolean).
+opt_type(force,        force,        boolean).
+opt_type(debug,        debug,        term).
+opt_type(spy,          spy,          term).
+opt_type(pce,          pce,          boolean).
+
+opt_help(output,
+         "File or directory for output").
+opt_help(tab_distance,
+         "Distance between tab-stops.  Default 8.").
+opt_help(lib,
+         "Add a library directory").
+opt_help(test,
+         "Show output using less(1) rather than saving it").
+opt_help(dryrun,
+         "Do not change any files").
+opt_help(debug,
+         "Add debug topic").
+opt_help(spy,
+         "Set spy point on predicate").
+opt_help(pce,
+         "Load library(pce) for colour support").
+
 main([File], Options) :-
     option(output(Output), Options),
     \+ exists_directory(Output),
@@ -67,24 +122,6 @@ setup_spy(Spec) :-
 setup_spy(Spec) :-
     guitracer,
     spy(Spec).
-
-%!  help
-%
-%   Print help
-
-help :-
-    format('Usage: swi-indent.pl [options] file ...~n', []),
-    format('Options:~n~n'),
-    format('  --help           Print usage~n'),
-    format('  --output=file    Place output in file (only one input)~n'),
-    format('  --output=dir     Place output in directory~n'),
-    format('  --lib=dir        Add libarry directory~n'),
-    format('  --test           Show output in less(1)~n'),
-    format('  --dryrun         Do not change any files~n'),
-    format('  --force          Ignore changes while comparing~n'),
-    format('  --debug=topic    Enable debug topic (may be repeated)~n'),
-    format('  --spy=predicate  Spy predicate (may be repeated)~n'),
-    format('  --pce            Load library(pce) for colour support~n').
 
 %!  expand_file(+File, +Output, +Options)
 %
