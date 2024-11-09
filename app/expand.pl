@@ -42,8 +42,19 @@ main(Argv) :-
     maplist(expand_tabs(Options), Files).
 
 opt_type(tab_distance, tab_distance, natural).
+
+opt_help(help(usage),
+         " [--tab_distance=DIST] file ...").
+opt_help(help(header),
+         md("# Replace tabs by spaces in Prolog source
+
+            Replace tabs by spaces while taking care of spaces in
+            Prolog quoted material, including ``0'<tab>``.
+            ")).
 opt_help(tab_distance,
          "Distance between tab-stops.  Default 8.").
+
+opt_meta(tab_distance, 'DIST').
 
 expand_tabs(Options, File) :-
     get_time(T0),
