@@ -41,7 +41,7 @@
 :- use_module('../prolog/reindent').
 :- use_module('../prolog/cmp_source').
 
-:- initialization main.
+:- initialization(main,main).
 
 :- meta_predicate
     run(0, +),
@@ -58,10 +58,22 @@ opt_type(lib,          lib,          directory(read)).
 opt_type(test,         test,         boolean).
 opt_type(dryrun,       dryrun,       boolean).
 opt_type(force,        force,        boolean).
-opt_type(debug,        debug,        term).
-opt_type(spy,          spy,          term).
+opt_type(debug,        debug,        term|boolean).
+opt_type(spy,          spy,          atom).
 opt_type(pce,          pce,          boolean).
 
+opt_help(help(usage),
+         " [option ...] file ...").
+opt_help(help(header),
+         md("# Re-indent Prolog source files
+
+             Update file layout to current SWI-Prolog style guide.  This
+             implies using spaces, indent body at 4 spaces and put the cut
+             on a new line.
+
+             This program expects the input to be conform to the older SWI-Prolog
+             style guide.
+            ")).
 opt_help(output,
          "File or directory for output").
 opt_help(tab_distance,
@@ -70,6 +82,8 @@ opt_help(lib,
          "Add a library directory").
 opt_help(test,
          "Show output using less(1) rather than saving it").
+opt_help(force,
+         "Ignore failed validation of equality").
 opt_help(dryrun,
          "Do not change any files").
 opt_help(debug,
@@ -78,6 +92,11 @@ opt_help(spy,
          "Set spy point on predicate").
 opt_help(pce,
          "Load library(pce) for colour support").
+
+opt_meta(output, 'FILE|DIR').
+opt_meta(debug, 'TOPIC').
+opt_meta(spy, 'PI').
+opt_meta(tab_distance, 'DIST').
 
 main([File], Options) :-
     option(output(Output), Options),
@@ -115,7 +134,8 @@ set_options([H|T0], [H|T]) :-
 setup_spy(Spec) :-
     atom_codes(Spec, Codes),
     phrase((string(NameCodes), "/", string(ArityCodes)), Codes),
-    catch(number_codes(Arity, ArityCodes), _, fail), !,
+    catch(number_codes(Arity, ArityCodes), _, fail),
+    !,
     atom_codes(Name, NameCodes),
     guitracer,
     spy(Name/Arity).

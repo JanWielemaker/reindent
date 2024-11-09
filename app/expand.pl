@@ -35,7 +35,7 @@
 
 :- use_module('../prolog/expand_tabs').
 
-:- initialization main.
+:- initialization(main,main).
 
 main(Argv) :-
     argv_options(Argv, Files, Options),
